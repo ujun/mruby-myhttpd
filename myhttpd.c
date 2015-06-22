@@ -10,36 +10,22 @@
 #include "mruby/string.h"
 #include "mruby/array.h"
 #include "/usr/include/sqlite3.h"
+#include "utils.c"
 #define PORT 8888
 
 static int answer_to_connection (void *cls, struct MHD_Connection *connection, const char *url, const char *method, const char *version, const char *upload_data, size_t *upload_data_size, void **con_cls) {
 
   struct MHD_Response *response;
-  static int aptr;
-  if (0 != strcmp (method, "GET")) return MHD_NO;
-  if (&aptr != *con_cls) {
-    *con_cls = &aptr;
-    return MHD_YES;
-  }
-  *con_cls = NULL;
 
   mrb_state* mrb = mrb_open();
 
-  FILE* f = fopen("/Users/juchino/myruby/src/ujun/mruby_build/mruby-myhttpd/myhttpd.rb", "r");
-  mrb_load_file(mrb, f);
-  fclose(f);
+  mrb_loader(mrb, "/Users/juchino/myruby/src/ujun/mruby_build/mruby-myhttpd/myhttpd.rb");
 
-  mrb_value res;
+  mrb_value res = mrb_funcall(mrb, mrb_top_self(mrb), "gchist", 1, mrb_str_new(mrb, cls, strlen(cls)));
 
-  char *s = "centos";
-  mrb_value str = mrb_str_new(mrb, s, strlen(s));
-  res = mrb_funcall(mrb, mrb_top_self(mrb), "gchist", 1, str);
-
-  // FILE* log = fopen("myhttpd.log", "a");
-  // for(int i = 0; i < RARRAY_LEN(res); i++){
-  //   fprintf(log, "%s\n", mrb_str_to_cstr(mrb, mrb_ary_ref(mrb, res, i))); 
-  // }
-  // fclose(log);
+  for(int i = 0; i < RARRAY_LEN(res); i++){
+    logger("log.log", mrb_str_to_cstr(mrb, mrb_ary_ref(mrb, res, i))); 
+  }
 
   char *page = NULL;
   page = (char *)malloc(sizeof(char));
@@ -51,20 +37,14 @@ static int answer_to_connection (void *cls, struct MHD_Connection *connection, c
 
   mrb_close(mrb);
 
-
-  int ret;
-  response = MHD_create_response_from_buffer (strlen (page), (void *) page, MHD_RESPMEM_PERSISTENT);
-  ret = MHD_queue_response (connection, MHD_HTTP_OK, response);
-  MHD_destroy_response (response);
-
-  return ret; 
+  return create_response(page, connection);
 }
 
 
 
 int main (int argc, char *argv[]) {
   struct MHD_Daemon *daemon;
-  daemon = MHD_start_daemon (MHD_USE_SELECT_INTERNALLY, PORT, NULL, NULL, &answer_to_connection, NULL, MHD_OPTION_END);
+  daemon = MHD_start_daemon (MHD_USE_SELECT_INTERNALLY, PORT, NULL, NULL, &answer_to_connection, argv[1], MHD_OPTION_END);
   if (NULL == daemon) return 1;
 
   getchar();
