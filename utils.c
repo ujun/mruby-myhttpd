@@ -17,3 +17,22 @@ int create_response(char* page, struct MHD_Connection* connection) {
 
   return ret;
 }
+
+char* create_page(mrb_state* mrb, void* cls, char* func){
+
+  mrb_value res = mrb_funcall(mrb, mrb_top_self(mrb), func, 1, mrb_str_new(mrb, cls, strlen(cls)));
+
+  // for(int i = 0; i < RARRAY_LEN(res); i++){
+  //   logger("log.log", mrb_str_to_cstr(mrb, mrb_ary_ref(mrb, res, i))); 
+  // }
+
+  char *page = NULL;
+  page = (char *)malloc(sizeof(char));
+  for(int i = 0; i < RARRAY_LEN(res); i++){
+    char *a = mrb_str_to_cstr(mrb, mrb_ary_ref(mrb, res, i)); 
+    page = (char*)realloc(page, strlen(page) + strlen(a) + 1);
+    strcat(page, a);
+  }
+
+  return page;
+}

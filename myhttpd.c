@@ -21,25 +21,13 @@ static int answer_to_connection (void *cls, struct MHD_Connection *connection, c
 
   mrb_loader(mrb, "/Users/juchino/myruby/src/ujun/mruby_build/mruby-myhttpd/myhttpd.rb");
 
-  mrb_value res = mrb_funcall(mrb, mrb_top_self(mrb), "gchist", 1, mrb_str_new(mrb, cls, strlen(cls)));
-
-  for(int i = 0; i < RARRAY_LEN(res); i++){
-    logger("log.log", mrb_str_to_cstr(mrb, mrb_ary_ref(mrb, res, i))); 
-  }
-
-  char *page = NULL;
-  page = (char *)malloc(sizeof(char));
-  for(int i = 0; i < RARRAY_LEN(res); i++){
-    char *a = mrb_str_to_cstr(mrb, mrb_ary_ref(mrb, res, i)); 
-    page = (char*)realloc(page, strlen(page) + strlen(a) + 1);
-    strcat(page, a);
-  }
+  char* page = create_page(mrb, cls, "gchist");
+  logger("log.log", page);
 
   mrb_close(mrb);
 
   return create_response(page, connection);
 }
-
 
 
 int main (int argc, char *argv[]) {
